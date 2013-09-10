@@ -29,8 +29,13 @@ class LoadLotsOfInstruments(stresstesting.MantidStressTest):
         """Do all of the real work of loading and testing the file"""
         print "----------------------------------------"
         print "Loading '%s'" % filename
-        wksp = LoadEmptyInstrument(filename)
-        if wksp is None:
+        try:
+            wksp = LoadEmptyInstrument(filename)
+            if wksp is None:
+                return False
+        except Exception, e:
+            print "FAILED TO LOAD '%s' WITH ERROR:" % filename
+            print e
             return False
 
         # TODO standard tests
@@ -53,17 +58,9 @@ class LoadLotsOfInstruments(stresstesting.MantidStressTest):
         # run the tests
         failed = []
         for filename in files:
-            try:
-                if not self.__loadAndTest__(filename):
-                    print "FAILED TO LOAD '%s'" % filename
-                    failed.append(filename)
-            except Exception, e:
-                print "FAILED TO LOAD '%s' WITH ERROR:" % filename
-                print e
+            if not self.__loadAndTest__(filename):
+                print "FAILED TO LOAD '%s'" % filename
                 failed.append(filename)
-            finally:
-                # Clear everything for the next test
-                FrameworkManager.Instance().clear()
 
         # final say on whether or not it 'worked'
         print "----------------------------------------"
