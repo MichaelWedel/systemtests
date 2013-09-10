@@ -4,8 +4,32 @@ import os
 import re
 import glob
 import stresstesting
+import multiprocessing
 
 EXPECTED_EXT = '.expected'
+
+def loadAndTest(filename):
+    """Do all of the real work of loading and testing the file"""
+    try:
+        wksp = LoadEmptyInstrument(filename)
+        if wksp is None:
+            return filename
+    except Exception, e:
+        return filename
+
+    # TODO standard tests
+    if wksp.getNumberHistograms() <= 0:
+        del wksp
+        return filename
+    if wksp.getMemorySize() <= 0:
+        print "Workspace takes no memory: Memory used=" + str(wksp.getMemorySize())
+        del wksp
+        return filename
+
+    # cleanup
+    del wksp
+    return None
+
 
 class LoadLotsOfInstruments(stresstesting.MantidStressTest):
     def __getDataFileList__(self):
@@ -24,43 +48,23 @@ class LoadLotsOfInstruments(stresstesting.MantidStressTest):
         files.sort()
         return files
 
-
-    def __loadAndTest__(self, filename):
-        """Do all of the real work of loading and testing the file"""
-        print "----------------------------------------"
-        print "Loading '%s'" % filename
-        try:
-            wksp = LoadEmptyInstrument(filename)
-            if wksp is None:
-                return False
-        except Exception, e:
-            print "FAILED TO LOAD '%s' WITH ERROR:" % filename
-            print e
-            return False
-
-        # TODO standard tests
-        if wksp.getNumberHistograms() <= 0:
-            del wksp
-            return False
-        if wksp.getMemorySize() <= 0:
-            print "Workspace takes no memory: Memory used=" + str(wksp.getMemorySize())
-            del wksp
-            return False
-
-        # cleanup
-        del wksp
-        return True
-
     def runTest(self):
         """Main entry point for the test suite"""
         files = self.__getDataFileList__()
 
+        pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
         # run the tests
         failed = []
-        for filename in files:
-            if not self.__loadAndTest__(filename):
-                print "FAILED TO LOAD '%s'" % filename
-                failed.append(filename)
+        result = pool.imap_unordered(loadAndTest,files)
+        pool.close()
+        try:
+            while True:
+                filename = result.next()
+                if filename is not None:
+                    print "FAILED TO LOAD '%s'" % filename
+                    failed.append(filename)
+        except StopIteration:
+            pass
 
         # final say on whether or not it 'worked'
         print "----------------------------------------"
@@ -72,4 +76,4 @@ class LoadLotsOfInstruments(stresstesting.MantidStressTest):
                                    % (len(failed), len(files)))
         else:
             print "Successfully loaded %d files" % len(files)
-	    print files
+	    #print files
