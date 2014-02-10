@@ -6,13 +6,13 @@ from abc import ABCMeta, abstractmethod
 from mantid.simpleapi import *
 
 # For debugging only.
-from mantid.api import AnalysisDataService, FileFinder
+from mantid.api import AnalysisDataService
 
 # Import our workflows.
 from inelastic_indirect_reducer import IndirectReducer
 from inelastic_indirect_reduction_steps import CreateCalibrationWorkspace
 from IndirectEnergyConversion import resolution, slice
-from IndirectDataAnalysis import elwin, msdfit, fury, furyfitSeq, confitSeq
+from IndirectDataAnalysis import elwin, msdfit, fury, furyfitSeq
 
 '''
 - TOSCA only supported by "Reduction" (the Energy Transfer tab of C2E).
@@ -654,86 +654,4 @@ class IRISFuryAndFuryFit(ISISIndirectInelasticFuryAndFuryFit):
     def get_reference_files(self):
         return ['II.IRISFury.nxs',
                 'II.IRISFuryFitSeq.nxs']
-
-#==============================================================================
-class ISISConvFit(ISISIndirectInelasticBase):
-    '''A base class for the ISIS indirect inelastic ConvFit tests
-    
-    The workflow is defined in the _run() method, simply
-    define an __init__ method and set the following properties
-    on the object
-    '''
-    __metaclass__ = ABCMeta # Mark as an abstract class
-    
-    def _run(self):
-        '''Defines the workflow for the test'''
-
-        LoadNexus(self.sample, OutputWorkspace=self.sample)
-
-        confitSeq(
-            self.sample,
-            self.func, 
-            self.startx, 
-            self.endx, 
-            False, 
-            False, 
-            self.ftype, 
-            self.bg, 
-            self.spectra_min, 
-            self.spectra_max, 
-            self.ties, 
-            False)
-
-    def _validate_properties(self):
-        '''Check the object properties are in an expected state to continue'''
-        pass
-
-#------------------------- OSIRIS tests ---------------------------------------
-
-class OSIRISConvFit(ISISConvFit):
-
-    def __init__(self):
-        ISISConvFit.__init__(self)
-        # Fury
-        self.sample = 'osi97935_graphite002_red.nxs'
-        self.resolution = FileFinder.getFullPath('osi97935_graphite002_res.nxs')
-        #ConvFit fit function
-        self.func = 'name=LinearBackground,A0=0,A1=0;(composite=Convolution,FixResolution=true,NumDeriv=true;name=Resolution,FileName=\"%s\";name=Lorentzian,Amplitude=2,PeakCentre=0,FWHM=0.05)' % self.resolution
-        self.ftype = '1L'
-        self.startx = -0.2
-        self.endx = 0.2
-        self.bg = 'FitL_s'
-        self.spectra_min = 0
-        self.spectra_max = 41
-        self.ties = False
-
-        self.result_names = ['osi97935_graphite002_conv_1LFitL_s0_to_41_Workspace']
-
-    def get_reference_files(self):
-        return ['II.OSIRISConvFitSeq.nxs']
-
-#------------------------- IRIS tests -----------------------------------------
-
-class IRISConvFit(ISISConvFit):
-
-    def __init__(self):
-        ISISConvFit.__init__(self)
-        # Fury
-        self.sample = 'irs53664_graphite002_red.nxs'
-        self.resolution = FileFinder.getFullPath('irs53664_graphite002_res.nxs')
-        #ConvFit fit function
-        self.func = 'name=LinearBackground,A0=0,A1=0;(composite=Convolution,FixResolution=true,NumDeriv=true;name=Resolution,FileName=\"%s\";name=Lorentzian,Amplitude=3,PeakCentre=0,FWHM=0.05)' % self.resolution
-        self.ftype = '1L'
-        self.startx = -0.2
-        self.endx = 0.2
-        self.bg = 'FitL_s'
-        self.spectra_min = 0
-        self.spectra_max = 50
-        self.ties = False
-
-        self.result_names = ['irs53664_graphite002_conv_1LFitL_s0_to_50_Workspace']
-
-    def get_reference_files(self):
-        return ['II.IRISConvFitSeq.nxs']
-
 
