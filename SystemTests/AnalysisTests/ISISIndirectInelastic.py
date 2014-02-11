@@ -312,13 +312,7 @@ class ISISIndirectInelasticResolution(ISISIndirectInelasticBase):
                                         self.analyser,
                                         self.reflection,
                                         # Don't plot from a system test:
-                                        plotOpt = False)]
-
-        # Clean up the files that are automatically saved by resolution.
-        # TODO: add a save option to the function, defaulted to False so that
-        #       we don't have to bother to do this.
-        temp_file = self.get_temp_dir_path(self.result_names[0] + ".nxs")
-        os.remove(temp_file)
+                                        Plot=False)]
 
     def _validate_properties(self):
         '''Check the object properties are in an expected state to continue'''
