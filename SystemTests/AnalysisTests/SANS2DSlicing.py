@@ -24,7 +24,7 @@ class SANS2DMinimalBatchReductionSliced(stresstesting.MantidStressTest):
         fit_settings = batch.BatchReduce(BATCHFILE, '.nxs',saveAlgs={}, combineDet='rear')
         
     def validate(self):
-        self.tolerance = 0.02
+        self.tolerance = 0.021
         self.tolerance_is_reller=True
         return str(mtd['trans_test_rear'][0]), 'SANSReductionGUI.nxs'
 
