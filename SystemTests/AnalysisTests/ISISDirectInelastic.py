@@ -359,6 +359,38 @@ class MERLINReduction(ISISDirectInelasticReduction):
       return result, reference
 
 #------------------------- LET tests -------------------------------------------------
+#
+def find_binning_range(energy,ebin):
+    """ function finds the binning range used in multirep mode 
+
+        # THIS FUNCTION SHOULD BE MADE GENERIG AND MOVED OUT OF HERE
+    """
+    energy=float(energy)
+
+    emin=(1.0-ebin[2])*energy   #minimum energy is with 80% energy loss
+    lam=(81.81/energy)**0.5
+    lam_max=(81.81/emin)**0.5
+    tsam=252.82*lam*25   #time at sample
+    tmon2=252.82*lam*23.5 #time to monitor 6 on LET
+    tmax=tsam+(252.82*lam_max*4.1) #maximum time to measure inelastic signal to
+    t_elastic=tsam+(252.82*lam*4.1)   #maximum time of elastic signal
+    tbin=[int(tmon2),1.6,int(tmax)]				
+    energybin=[float("{0: 6.4f}".format(elem*energy)) for elem in ebin]
+
+    return (energybin,tbin,t_elastic);
+#--------------------------------------------------------------------------------------------------------
+def find_background(ws_name,bg_range):
+    """ Function to find background from multirep event workspace
+
+        # THIS FUNCTION SHOULD BE MADE GENERIC AND MOVED OUT OF HERE
+    """
+    delta=bg_range[1]-bg_range[0]
+    Rebin(InputWorkspace='w1',OutputWorkspace='bg',Params=[bg_range[0],delta,bg_range[1]],PreserveEvents=False)	
+    v=(delta)/1.6
+    CreateSingleValuedWorkspace(OutputWorkspace='d',DataValue=v)
+    Divide(LHSWorkspace='bg',RHSWorkspace='d',OutputWorkspace='bg')
+
+
 
 class LETReduction(stresstesting.MantidStressTest):
 
@@ -389,27 +421,21 @@ class LETReduction(stresstesting.MantidStressTest):
                      MonitorsAsEvents='1')
       ConjoinWorkspaces(InputWorkspace1=sample_ws, InputWorkspace2=monitors_ws)
 
-      energy = ei
-      emin = 0.2*energy   #minimum energy is with 80% energy loss
-      lam = (81.81/energy)**0.5
-      lam_max = (81.81/emin)**0.5
-      tsam = 252.82*lam*25   #time at sample
-      tmon2 = 252.82*lam*23.5 #time to monitor 6 on LET
-      tmax = tsam+(252.82*lam_max*4.1) #maximum time to measure inelastic signal to
-      t_elastic = tsam+(252.82*lam*4.1)   #maximum time of elastic signal
-      tbin = [int(tmon2),1.6,int(tmax)]
+      (energybin,tbin,t_elastic) = find_binning_range(ei,ebin);
+
       Rebin(InputWorkspace=sample_ws,OutputWorkspace=sample_ws, Params=tbin, PreserveEvents='1')
-      energybin = [ebin[0]*energy,ebin[1]*energy,ebin[2]*energy]
-      energybin = [ '%.4f' % elem for elem in energybin ]  
+      #energybin = [ebin[0]*energy,ebin[1]*energy,ebin[2]*energy]
+      #energybin = [ '%.4f' % elem for elem in energybin ]  
       ebinstring = str(energybin[0])+','+str(energybin[1])+','+str(energybin[2])
       argi={}
       argi['det_cal_file']='det_corrected7.dat'
       argi['bleed'] = False
       argi['norm_method']='current'
       argi['detector_van_range']=[0.5,200]
-      argi['bkgd_range']=[int(t_elastic),int(tmax)]
+      argi['bkgd_range']=[int(t_elastic),int(tbin[2])]
       argi['hard_mask_file']='LET_hard.msk'
-      reduced_ws = dgreduce.arb_units(white_ws, sample_ws, energy, ebinstring, map_file,**argi)
+
+      reduced_ws = dgreduce.arb_units(white_ws, sample_ws, ei, ebinstring, map_file,**argi)
       pass
 
   def validate(self):
@@ -419,4 +445,119 @@ class LETReduction(stresstesting.MantidStressTest):
       self.disableChecking.append('Instrument')
 
       return "reduced_ws", "LETReduction.nxs"
+
+class LETReductionEvent2014Multirep(stresstesting.MantidStressTest):
+  """
+  written in a hope that most of the stuff find here will eventually find its way into main reduction routines
+  """
+
+  def requiredMemoryMB(self):
+      """Far too slow for managed workspaces. They're tested in other places. Requires 2Gb"""
+      return 2000
+
+  def runTest(self):
+      """
+      Run the LET reduction with event NeXus files
+      
+      Relies on LET_Parameters.xml file from June 2013
+      """
+
+      dgreduce.setup('LET')
+      wb=5545 #11869   # enter whitebeam run number here
+        
+      run_no=[14305] 
+      ei=[3.4,8.] # multiple energies provided in the data file
+      ebin=[-4,0.002,0.8]    #binning of the energy for the spe file. The numbers are as a fraction of ei [from ,step, to ]
+      mapping='rings_103.map'  # rings mapping file for powders, liquout=iliad("wb_wksp","w1reb",energy,ebinstring,mapping,bleed=False,norm_method='current',det_cal_file='det_corrected7.dat',detector_van_range=[0.5,200],bkgd_range=[int(t_elastic),int(tmax)])
+      mask_file = 'LET_hard.msk'
+      # currently done here on-
+      remove_background = True  #if true then will subtract a flat background in time from the time range given below otherwise put False
+      bg_range=[92000,98000] # range of times to take background in
+
+
+
+    # loads the whitebeam (or rather the long monovan ). Does it as a raw file to save time as the event mode is very large
+      if 'wb_wksp' in mtd:
+            wb_wksp=mtd['wb_wksp']
+      else:  #only load whitebeam if not already there
+        dgreduce.getReducer().det_cal_file = 'det_corrected7.dat'
+        wb_wksp = dgreduce.getReducer().load_data('LET0000'+str(wb)+'.raw','wb_wksp')
+        dgreduce.getReducer().det_cal_file = wb_wksp;
+
+######################################################################
+
+############################################
+# Vanadium labelled Dec 2011 - flat plate of dimensions: 40.5x41x2.0# volume = 3404.025 mm**3 mass= 20.79
+      sampleMass=20.79 # 17.25  # mass of your sample (PrAl3)
+      sampleRMM= 50.9415 # 221.854  # molecular weight of your sample
+      MonoVanRun=14319 # vanadium run in the same configuration as your sample
+      monovan_mapfile='rings_103.map'  #
+
+######################################################################
+
+      MonoVanWB="wb_wksp"
+      for run in run_no:     #loop around runs
+          fname='LET0000'+str(run)+'.nxs'
+          print ' processing file ', fname
+          w1 = dgreduce.getReducer().load_data(run,'w1')
+
+    
+          if remove_background:
+                find_background('w1',bg_range);
+
+        #############################################################################################
+        # this section finds all the transmitted incident energies if you have not provided them
+        #if len(ei) == 0:  -- not tested here -- should be unit test for that. 
+           #ei = find_chopper_peaks('w1_monitors');       
+          print 'Energies transmitted are:'
+          print (ei)
+
+          RenameWorkspace(InputWorkspace = 'w1',OutputWorkspace='w1_storage');
+                    
+         #now loop around all energies for the run
+          result =[];
+          for energy in ei:
+                print float(energy)
+                (energybin,tbin,t_elastic) = find_binning_range(energy,ebin);
+                print " Rebinning will be performed in the range: ",energybin
+                # if we calculate more then one energy, initial workspace will be used more then once
+                if len(ei)>1:
+                    CloneWorkspace(InputWorkspace = 'w1_storage',OutputWorkspace='w1')
+                else:
+                    Rename(InputWorkspace = 'w1_storage',OutputWorkspace='w1');
+
+                if remove_background:
+                    w1=Rebin(InputWorkspace='w1',OutputWorkspace='w1',Params=tbin,PreserveEvents=False)            
+                    Minus(LHSWorkspace='w1',RHSWorkspace='bg',OutputWorkspace='w1')
+               
+
+                ######################################################################
+                argi={};
+                argi['norm_method']='current'
+                argi['det_cal_file']=wb_wksp
+                argi['detector_van_range']=[2,7]
+                argi['bkgd_range']=[bg_range[0],bg_range[1]]
+                argi['hardmaskOnly']=mask_file   # diag does not work well on LET. At present only use a hard mask RIB has created
+                argi['check_background']=False;
+
+                # abs units
+                argi['sample_mass']=sampleMass;
+                argi['sample_rmm'] =sampleRMM;
+                argi['monovan_mapfile']=monovan_mapfile;
+                argi['monovan_integr_range']=[ebin[0]*energy,ebin[2]*energy]; # integration range of the vanadium 
+                #MonoVanWSName = None;
+
+                # absolute unit reduction -- if you provided MonoVan run or relative units if monoVan is not present
+                out=dgreduce.arb_units(wb_wksp,w1,energy,energybin,mapping,MonoVanRun,**argi)
+                RenameWorkspace(InputWorkspace=out,OutputWorkspace='LETreducedEi{0:2.1f}'.format(energy));
+
+
+
+  def validate(self):
+      self.tolerance = 1e-6
+      self.tolerance_is_reller=True
+      self.disableChecking.append('SpectraMap')
+      self.disableChecking.append('Instrument')
+
+      return "LETreducedEi3.4","LET14305_3_4mev.nxs","LETreducedEi8.0", "LET14305_8_0mev.nxs",
 
