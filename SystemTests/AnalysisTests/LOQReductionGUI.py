@@ -20,5 +20,5 @@ class LOQMinimalBatchReduction(stresstesting.MantidStressTest):
         fit_settings = batch.BatchReduce(BATCHFILE, '.nxs', combineDet='merged', saveAlgs={})
 
     def validate(self):
-        self.tolerance = 1.0e-2
+        self.tolerance = 1.0e-5
         return 'first_time_merged', 'LOQReductionMergedData.nxs'
