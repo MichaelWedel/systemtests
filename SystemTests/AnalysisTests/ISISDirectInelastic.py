@@ -524,7 +524,7 @@ class LETReductionEvent2014Multirep(stresstesting.MantidStressTest):
                 if len(ei)>1:
                     CloneWorkspace(InputWorkspace = 'w1_storage',OutputWorkspace='w1')
                 else:
-                    Rename(InputWorkspace = 'w1_storage',OutputWorkspace='w1');
+                    RenameWorkspace(InputWorkspace = 'w1_storage',OutputWorkspace='w1');
 
                 if remove_background:
                     w1=Rebin(InputWorkspace='w1',OutputWorkspace='w1',Params=tbin,PreserveEvents=False)            
@@ -555,10 +555,10 @@ class LETReductionEvent2014Multirep(stresstesting.MantidStressTest):
 
 
   def validate(self):
-      self.tolerance = 1e-6
-      self.tolerance_is_reller=True
+      self.tolerance = 1e-2
+      self.tolerance_is_reller=False
       self.disableChecking.append('SpectraMap')
       self.disableChecking.append('Instrument')
 
-      return "LETreducedEi3.4","LET14305_3_4mev.nxs","LETreducedEi8.0", "LET14305_8_0mev.nxs",
+      return "LETreducedEi3.4","LET14305_3_4mev.nxs","LETreducedEi8.0", "LET14305_8_0mev.nxs"
 
