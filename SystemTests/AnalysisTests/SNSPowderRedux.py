@@ -47,7 +47,7 @@ class PG3Analysis(stresstesting.MantidStressTest):
                            LowResRef=15000, RemovePromptPulseWidth=50,
                            Binning=-0.0004, BinInDspace=True, FilterBadPulses=True,
                            SaveAs="gsas and fullprof and pdfgetn", OutputDirectory=savedir,
-                           NormalizeByCurrent=True, FinalDataUnits="dSpacing")
+                           FinalDataUnits="dSpacing")
 
 
         # load output gsas file and the golden one
@@ -197,7 +197,7 @@ class SeriesAndConjoinFilesTest(stresstesting.MantidStressTest):
                            LowResRef=15000, RemovePromptPulseWidth=50,
                            Binning=-0.0004, BinInDspace=True, FilterBadPulses=True,
                            SaveAs="gsas", OutputDirectory=savedir,
-                           NormalizeByCurrent=True, FinalDataUnits="dSpacing")
+                           FinalDataUnits="dSpacing")
 
         # reduce a series of runs
         SNSPowderReduction(Instrument="PG3", RunNumber=[9829,9830], Extension="_event.nxs",
@@ -207,7 +207,7 @@ class SeriesAndConjoinFilesTest(stresstesting.MantidStressTest):
                            LowResRef=15000, RemovePromptPulseWidth=50,
                            Binning=-0.0004, BinInDspace=True, FilterBadPulses=True,
                            SaveAs="gsas", OutputDirectory=savedir,
-                           NormalizeByCurrent=True, FinalDataUnits="dSpacing")
+                           FinalDataUnits="dSpacing")
 
         # needs to be set for ConjoinFiles to work
         config['default.facility'] = 'SNS'
