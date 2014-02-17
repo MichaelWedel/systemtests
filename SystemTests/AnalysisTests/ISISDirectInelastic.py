@@ -544,7 +544,8 @@ class LETReductionEvent2014Multirep(stresstesting.MantidStressTest):
                 argi['sample_mass']=sampleMass;
                 argi['sample_rmm'] =sampleRMM;
                 argi['monovan_mapfile']=monovan_mapfile;
-                argi['monovan_integr_range']=[ebin[0]*energy,ebin[2]*energy]; # integration range of the vanadium 
+                # ensure correct round-off procedure
+                argi['monovan_integr_range']=[round(ebin[0]*energy,4),round(ebin[2]*energy,4)]; # integration range of the vanadium 
                 #MonoVanWSName = None;
 
                 # absolute unit reduction -- if you provided MonoVan run or relative units if monoVan is not present
