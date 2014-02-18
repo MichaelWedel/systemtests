@@ -243,11 +243,11 @@ class MantidStressTest(object):
         '''
         valNames = list(self.validate())
         from mantid.simpleapi import Load
-        nunRezToCheck=len(valNames)
-        WorkspaceName=None;
+        numRezToCheck=len(valNames)
+        mismatchName=None;
 
-        validatrionRez=True;
-        for ik in range(0,nunRezToCheck,2): # check All results
+        validationResult =True;
+        for ik in range(0,numRezToCheck,2): # check All results
             workspace2 = valNames[ik+1]
             if workspace2.endswith('.nxs'):
                 Load(Filename=workspace2,OutputWorkspace="RefFile")
@@ -256,14 +256,14 @@ class MantidStressTest(object):
                 raise RuntimeError("Should supply a NeXus file: %s" % workspace2)
             valPair=(valNames[ik],"RefFile");
             if nunRezToCheck>2:
-                WorkspaceName = valNames[ik];
+                mismatchName = valNames[ik];
 
-            if not(self.validateWorkspaces(valPair,WorkspaceName)):
-                validatrionRez = False;
+            if not(self.validateWorkspaces(valPair,mismatchName)):
+                validationResult = False;
                 print 'Workspace {0} not equal to its reference file'.format(valNames[ik]);
         #end check All results
 
-        return validatrionRez;
+        return validationResult;
 
     def validateWorkspaceToWorkspace(self):
         '''
