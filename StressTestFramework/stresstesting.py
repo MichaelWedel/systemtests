@@ -255,7 +255,7 @@ class MantidStressTest(object):
             else:
                 raise RuntimeError("Should supply a NeXus file: %s" % workspace2)
             valPair=(valNames[ik],"RefFile");
-            if nunRezToCheck>2:
+            if numRezToCheck>2:
                 mismatchName = valNames[ik];
 
             if not(self.validateWorkspaces(valPair,mismatchName)):
