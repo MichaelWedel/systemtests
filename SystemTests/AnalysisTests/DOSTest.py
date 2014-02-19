@@ -60,3 +60,41 @@ class DOSIRActiveTest(stresstesting.MantidStressTest):
     def validate(self):
       return self.ouput_ws_name, self.ref_result
 
+#------------------------------------------------------------------------------------
+
+class DOSPartialTest(stresstesting.MantidStressTest):
+
+    def runTest(self):
+      file_name = 'squaricn.phonon'
+      spec_type = 'DOS'
+      self.ouput_ws_name = 'squaricn'
+      self.ref_result = 'II.DOSPartialTest.nxs'
+
+      DensityOfStates(File=file_name, SpectrumType=spec_type, Ions="H,C,O", OutputWorkspace=self.ouput_ws_name)
+
+    def validate(self):
+      return self.ouput_ws_name, self.ref_result
+
+#------------------------------------------------------------------------------------
+
+class DOSPartialSummedContributionsTest(stresstesting.MantidStressTest):
+    """
+      This test checks the reference result of the total DOS against
+      the summed partial contributions of all elements. The two should be roughly
+      equal to within a small degree of error.
+    """
+
+    def runTest(self):
+
+      file_name = 'squaricn.phonon'
+      spec_type = 'DOS'
+      self.ouput_ws_name = 'squaricn'
+      self.ref_result = 'II.DOSTest.nxs'
+      self.tolerance = 1e-10
+
+      DensityOfStates(File=file_name, SpectrumType=spec_type, Ions="H,C,O", SumContributions=True, OutputWorkspace=self.ouput_ws_name)
+
+    def validate(self):
+      return self.ouput_ws_name, self.ref_result
+
+
