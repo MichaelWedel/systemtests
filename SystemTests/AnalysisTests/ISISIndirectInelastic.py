@@ -6,13 +6,13 @@ from abc import ABCMeta, abstractmethod
 from mantid.simpleapi import *
 
 # For debugging only.
-from mantid.api import AnalysisDataService
+from mantid.api import AnalysisDataService, FileFinder
 
 # Import our workflows.
 from inelastic_indirect_reducer import IndirectReducer
 from inelastic_indirect_reduction_steps import CreateCalibrationWorkspace
 from IndirectEnergyConversion import resolution, slice
-from IndirectDataAnalysis import elwin, msdfit, fury, furyfitSeq
+from IndirectDataAnalysis import elwin, msdfit, fury, furyfitSeq, confitSeq
 
 '''
 - TOSCA only supported by "Reduction" (the Energy Transfer tab of C2E).
@@ -95,7 +95,7 @@ class ISISIndirectInelasticBase(stresstesting.MantidStressTest):
         '''Performs the validation for the generalised case of multiple results
         and multiple reference files.
         '''
-        self.tolerance = 1e-7
+
         self.disableChecking.append('SpectraMap')
         self.disableChecking.append('Instrument')
         self.disableChecking.append('Axes')
@@ -139,6 +139,7 @@ class ISISIndirectInelasticReduction(ISISIndirectInelasticBase):
     __metaclass__ = ABCMeta # Mark as an abstract class
     
     def _run(self):
+        self.tolerance = 1e-7
         '''Defines the workflow for the test'''
         reducer = IndirectReducer()
         reducer.set_instrument_name(self.instr_name)
@@ -224,6 +225,7 @@ class ISISIndirectInelasticCalibration(ISISIndirectInelasticBase):
     __metaclass__ = ABCMeta # Mark as an abstract class
     
     def _run(self):
+        self.tolerance = 1e-7
         '''Defines the workflow for the test'''
         calib = CreateCalibrationWorkspace()
         calib.set_files([self.data_file])
@@ -303,6 +305,7 @@ class ISISIndirectInelasticResolution(ISISIndirectInelasticBase):
     __metaclass__ = ABCMeta # Mark as an abstract class
     
     def _run(self):
+        self.tolerance = 1e-7
         '''Defines the workflow for the test'''
         self.result_names = [resolution(self.files,
                                         self.icon_opt,
@@ -381,6 +384,7 @@ class ISISIndirectInelasticDiagnostics(ISISIndirectInelasticBase):
     __metaclass__ = ABCMeta # Mark as an abstract class
     
     def _run(self):
+        self.tolerance = 1e-7
         '''Defines the workflow for the test'''
         slice(self.rawfiles,
               '',# No calib file.
@@ -451,7 +455,7 @@ class ISISIndirectInelasticElwinAndMSDFit(ISISIndirectInelasticBase):
     
     def _run(self):
         '''Defines the workflow for the test'''
-
+        self.tolerance = 1e-7
         elwin_results = elwin(self.files,
                               self.eRange,
                               Save=False,
@@ -571,7 +575,7 @@ class ISISIndirectInelasticFuryAndFuryFit(ISISIndirectInelasticBase):
     
     def _run(self):
         '''Defines the workflow for the test'''
-
+        self.tolerance = 1e-7
         self.samples = [sample[:-4] for sample in self.samples]
 
         #load files into mantid
@@ -648,4 +652,84 @@ class IRISFuryAndFuryFit(ISISIndirectInelasticFuryAndFuryFit):
     def get_reference_files(self):
         return ['II.IRISFury.nxs',
                 'II.IRISFuryFitSeq.nxs']
+
+#==============================================================================
+class ISISConvFit(ISISIndirectInelasticBase):
+    '''A base class for the ISIS indirect inelastic ConvFit tests
+    
+    The workflow is defined in the _run() method, simply
+    define an __init__ method and set the following properties
+    on the object
+    '''
+    __metaclass__ = ABCMeta # Mark as an abstract class
+    
+    def _run(self):
+        '''Defines the workflow for the test'''
+        self.tolerance = 1e-4
+        LoadNexus(self.sample, OutputWorkspace=self.sample)
+
+        confitSeq(
+            self.sample,
+            self.func, 
+            self.startx, 
+            self.endx, 
+            False, 
+            False, 
+            self.ftype, 
+            self.bg, 
+            self.spectra_min, 
+            self.spectra_max, 
+            self.ties, 
+            False)
+
+    def _validate_properties(self):
+        '''Check the object properties are in an expected state to continue'''
+        pass
+
+#------------------------- OSIRIS tests ---------------------------------------
+
+class OSIRISConvFit(ISISConvFit):
+
+    def __init__(self):
+        ISISConvFit.__init__(self)
+        self.sample = 'osi97935_graphite002_red.nxs'
+        self.resolution = FileFinder.getFullPath('osi97935_graphite002_res.nxs')
+        #ConvFit fit function
+        self.func = 'name=LinearBackground,A0=0,A1=0;(composite=Convolution,FixResolution=true,NumDeriv=true;name=Resolution,FileName=\"%s\";name=Lorentzian,Amplitude=2,PeakCentre=0,FWHM=0.05)' % self.resolution
+        self.ftype = '1L'
+        self.startx = -0.2
+        self.endx = 0.2
+        self.bg = 'FitL_s'
+        self.spectra_min = 0
+        self.spectra_max = 41
+        self.ties = False
+
+        self.result_names = ['osi97935_graphite002_conv_1LFitL_s0_to_41_Workspace']
+
+    def get_reference_files(self):
+        return ['II.OSIRISConvFitSeq.nxs']
+
+#------------------------- IRIS tests -----------------------------------------
+
+class IRISConvFit(ISISConvFit):
+
+    def __init__(self):
+        ISISConvFit.__init__(self)
+        self.sample = 'irs53664_graphite002_red.nxs'
+        self.resolution = FileFinder.getFullPath('irs53664_graphite002_res.nxs')
+        #ConvFit fit function
+        self.func = 'name=LinearBackground,A0=0.060238,A1=0.001267;(composite=Convolution,FixResolution=true,NumDeriv=true;name=Resolution,FileName=\"%s\";name=Lorentzian,Amplitude=1.028561,PeakCentre=-0.000855,FWHM=0.001575)' % self.resolution
+        self.ftype = '1L'
+        self.startx = -0.2
+        self.endx = 0.2
+        self.bg = 'FitL_s'
+        self.spectra_min = 0
+        self.spectra_max = 50
+        self.ties = False
+
+        self.result_names = ['irs53664_graphite002_conv_1LFitL_s0_to_50_Workspace']
+
+    def get_reference_files(self):
+        return ['II.IRISConvFitSeq.nxs']
+
 
