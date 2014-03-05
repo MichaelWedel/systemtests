@@ -38,17 +38,16 @@ class POLDIAutoCorrelationTest(stresstesting.MantidStressTest):
       fitResult = mtd[fitNameTemplate + "_Parameters"]
       
       slope = fitResult.cell(1, 1)
-      self.assertGreaterThan(slope, 0.95, "Slope is too small for %s (is: %d)" % (dataFile, slope))
-      self.assertLessThan(slope, 1.0, "Slope is larger than 1.0 for %s (is: %d)" % (dataFile, slope))
+      self.assertDelta(slope, 1.0, 1e-4, "Slope is larger than 1.0 for %s (is: %d)" % (dataFile, slope))
       
       relativeSlopeError = fitResult.cell(1, 2) / slope
       self.assertLessThan(relativeSlopeError, 1e-4, "Relative error of slope is too large for %s (is: %d)" % (dataFile, relativeSlopeError))
       
       intercept = fitResult.cell(0, 1)
-      self.assertLessThan(np.abs(intercept), 5.0, "Intercept is too large for %s (is: %d)" % (dataFile, intercept))
+      self.assertLessThan(intercept, -0.2, "Intercept is too large for %s (is: %d)" % (dataFile, intercept))
       
       relativeInterceptError = fitResult.cell(0, 2) / intercept
-      self.assertLessThan(relativeInterceptError, 1e-1, "Relative error of intercept is too large for %s (is: %d)" % (dataFile, relativeInterceptError))
+      self.assertLessThan(relativeInterceptError, 1e-4, "Relative error of intercept is too large for %s (is: %d)" % (dataFile, relativeInterceptError))
       
       residuals = mtd[fitNameTemplate + "_Workspace"].dataY(2)
       maxAbsoluteResidual = np.max(np.abs(residuals))
