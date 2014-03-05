@@ -5,7 +5,7 @@ import numpy as np
 '''This test checks that the results of PoldiAutoCorrelation match the expected outcome.'''
 class POLDIPeakSearchTest(stresstesting.MantidStressTest):  
   def runTest(self):
-    dataFiles = ["poldi2013n006904"]
+    dataFiles = ["poldi2013n006903", "poldi2013n006904"]
     
     self.loadReferenceCorrelationData(dataFiles)
     self.loadReferencePeakData(dataFiles)
@@ -34,10 +34,10 @@ class POLDIPeakSearchTest(stresstesting.MantidStressTest):
       referencePositions = referencePeaks.column(0)
       
       for position, referencePosition in zip(positions, referencePositions):
-          self.assertDelta(position, referencePosition, 1e-6)      
+          self.assertDelta(position, referencePosition, 1e-6)
 
       intensities = calculatedPeaks.column(1)
       referenceIntensities = referencePeaks.column(1)
       
-      for intensity, referenceIntensity in zip(intensities, intensities):
-          self.assertDelta(intensity, referenceIntensity, 1e-6)
+      for intensity, referenceIntensity in zip(intensities, referenceIntensities):
+          self.assertDelta(intensity, referenceIntensity, 1e-3)
